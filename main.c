@@ -2,11 +2,11 @@
 #include <stdio.h>
 #include <math.h>
 
-#define AMPLIFIRE 50
-#define MAP_WIDTH 20
-#define MAP_HEIGHT 20
-#define TILE_SIZE 1
-#define PLAYER_R 0.25 * AMPLIFIRE
+#define MAP_WIDTH 10
+#define MAP_HEIGHT 10
+#define TILE_SIZE 64
+#define SCREEN_WIDTH 640
+#define SCREEN_HEIGHT 640
 
 typedef struct
 {
@@ -14,9 +14,9 @@ typedef struct
     Vector2 dir;
     Vector2 plane;
     Color color;
-}Player;
+} Player;
 
-int world_map[MAP_HEIGHT][MAP_WIDTH];
+int world_map[MAP_WIDTH][MAP_HEIGHT];
 
 void drawMap();
 void playerMove(Player *p, float delta);
@@ -24,26 +24,32 @@ void playerRot(Player *p, float delta);
 
 int main()
 {
-    for (int i = 0; i < MAP_HEIGHT; i++)
-        for (int j = 0; j < MAP_WIDTH; j++)
+
+    Vector2 rayDir;
+    float stepX, stepY, sideDistX, sideDistY, deltaDistX, deltaDistY;
+    for (int i = 0; i < MAP_WIDTH; i++)
+        for (int j = 0; j < MAP_HEIGHT; j++)
         {
-            if (!i || !j || i + 1 == MAP_HEIGHT || j + 1 == MAP_WIDTH)
+            if (!i || !j || i + 1 == MAP_WIDTH || j + 1 == MAP_HEIGHT)
                 world_map[i][j] = 1;
             else
                 world_map[i][j] = 0;
         }
-    InitWindow(MAP_WIDTH * AMPLIFIRE, MAP_HEIGHT * AMPLIFIRE, "map");
+    // InitWindow(MAP_WIDTH * AMPLIFIRE, MAP_HEIGHT * AMPLIFIRE, "map");
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "game");
     SetTargetFPS(60);
-    Player player = {{MAP_HEIGHT * AMPLIFIRE / 2.0, MAP_HEIGHT * AMPLIFIRE / 2.0}, {0, -1}, {1, 0}};
+    Player player = {{SCREEN_WIDTH / 2.0, SCREEN_WIDTH / 2.0}, {0, -1}, {1, 0}};
+
     while (!WindowShouldClose())
     {
+
         float delta = GetFrameTime(), speed = 1;
         playerMove(&player, delta);
         playerRot(&player, delta);
         BeginDrawing();
         drawMap();
-        DrawCircle(player.pos.x, player.pos.y, PLAYER_R, RED);                                                                       // player circle
-        DrawLine(player.pos.x, player.pos.y, player.pos.x + player.dir.x /2 * AMPLIFIRE, player.pos.y + player.dir.y / 2 * AMPLIFIRE, RED); // draw direction
+        DrawCircle(player.pos.x, player.pos.y, TILE_SIZE/4, RED);                                                                               // player circle
+        DrawLine(player.pos.x, player.pos.y, player.pos.x + player.dir.x * TILE_SIZE, player.pos.y + player.dir.y * TILE_SIZE, RED); // draw direction
         EndDrawing();
     }
 }
@@ -55,19 +61,18 @@ void drawMap()
     {
         for (int x = 0; x < MAP_WIDTH; x++)
         {
-            DrawLine(x * AMPLIFIRE, y * AMPLIFIRE, x * AMPLIFIRE, (y + TILE_SIZE) * AMPLIFIRE, BLACK);
-            DrawLine(x * AMPLIFIRE, y * AMPLIFIRE, (x + TILE_SIZE) * AMPLIFIRE, y * AMPLIFIRE, BLACK);
-            Color s = LIGHTGRAY;
-            if (world_map[y][x])
-                s = DARKGRAY;
-            DrawRectangle((x)*AMPLIFIRE, (y)*AMPLIFIRE, TILE_SIZE * AMPLIFIRE, TILE_SIZE * AMPLIFIRE, s);
+            if(world_map[x][y] == 0)
+                DrawRectangle(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE, LIGHTGRAY);
+            else
+                DrawRectangle(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE, DARKGRAY);
+            DrawRectangleLines(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE, BLACK);//outline
         }
     }
 }
 
 void playerMove(Player *p, float delta)
 {
-    float MoveSpeed = 5 * delta * AMPLIFIRE;
+    float MoveSpeed = TILE_SIZE * delta * 2;
     Vector2 targetPos = p->pos;
     if (IsKeyDown(KEY_W))
     {
@@ -89,7 +94,15 @@ void playerMove(Player *p, float delta)
         targetPos.x += MoveSpeed * p->dir.y;
         targetPos.y -= MoveSpeed * p->dir.x;
     }
-    int fUp = 1, fRt = 1;//check for wall sliding
+    int x = (int)(targetPos.x + TILE_SIZE)/64, y  = (int)(targetPos.y + TILE_SIZE)/64;
+    if(abs(x - (targetPos.x + TILE_SIZE)/64) > 0.5){
+        x++;
+    }
+    if(abs(y - (targetPos.y + TILE_SIZE)/64) > 0.5){
+        y++;
+    }
+
+    int fUp = 1, fRt = 1;
     if (targetPos.x < p->pos.x)
         fUp = -1;
 
@@ -98,12 +111,12 @@ void playerMove(Player *p, float delta)
 
     if (targetPos.x * targetPos.y > 0)//checks if our character is in the map
     {
-        if (!world_map[(int)(p->pos.y / AMPLIFIRE)][(int)((targetPos.x + (PLAYER_R - 1) * fUp) / AMPLIFIRE)])
+        if (!world_map[(int)((targetPos.x + (TILE_SIZE/4) * fUp) / TILE_SIZE)][(int)(p->pos.y / TILE_SIZE)])
             p->pos.x = targetPos.x;
 
-        if (!world_map[(int)((targetPos.y + (PLAYER_R - 1) * fRt) / AMPLIFIRE)][(int)(p->pos.x / AMPLIFIRE)])
+        if (!world_map[(int)(p->pos.x / TILE_SIZE)][(int)((targetPos.y + (TILE_SIZE / 4) * fRt) / TILE_SIZE)])
             p->pos.y = targetPos.y;
-    } //-- we add -1 bc on -x andd -y movment, when we change cordition to int, it stops sooner with out touching the wall --
+    } 
 }
 
 void playerRot(Player *p, float delta)
@@ -126,9 +139,91 @@ void playerRot(Player *p, float delta)
         p->dir.x = p->dir.x * cos(rotSpeed) - p->dir.y * sin(rotSpeed);
         p->dir.y = oldx * sin(rotSpeed) + p->dir.y * cos(rotSpeed);
 
-        
         float oldPlaneX = p->plane.x;
         p->plane.x = p->plane.x * cos(rotSpeed) - p->plane.y * sin(rotSpeed);
         p->plane.y = oldPlaneX * sin(rotSpeed) + p->plane.y * cos(rotSpeed);
     }
 }
+
+/*              phase 2
+ int mapX = floor(player.pos.x), mapY = floor(player.pos.y), res = 0;
+        float cameraX = 2 * player.pos.x / SCREEN_WIDTH, side;
+        rayDir.x = player.dir.x + player.plane.x * cameraX;
+        rayDir.y = player.dir.y + player.plane.y * cameraX;
+
+        if (rayDir.x < 0)
+        {
+            stepX = -1;
+            sideDistX = (player.pos.x - mapX) * deltaDistX;
+        }
+        else
+        {
+            stepX = 1;
+            sideDistX = (mapX + 1.0 - player.pos.x) * deltaDistX;
+        }
+
+        if (rayDir.y < 0)
+        {
+            stepY = -1;
+            sideDistY = (player.pos.y - mapY) * deltaDistY;
+        }
+        else
+        {
+            stepY = 1;
+            sideDistY = (mapY + 1.0 - player.pos.y) * deltaDistY;
+        }
+
+        for (int x = 0; x < SCREEN_WIDTH; x++)
+        {
+            // 1. Calculate ray position and direction
+            double cameraX = 2 * x / (double)SCREEN_WIDTH - 1;
+            double rayDirX = player.dir.x + player.plane.x * cameraX;
+            double rayDirY = player.dir.y + player.plane.y * cameraX;
+            // 2. Identify which box of the map we're in
+            int mapX = (int)player.pos.x;
+            int mapY = (int)player.pos.y;
+            deltaDistX = abs(1 / rayDir.x);
+            deltaDistY = abs(1 / rayDir.y);
+
+            if (sideDistX < sideDistY)
+            {
+                mapX += stepX;
+                sideDistX += deltaDistX;
+                side = 0;
+            }
+            else
+            {
+                mapY += stepY;
+                sideDistY += deltaDistY;
+                side = 1;
+            }
+            if (world_map[mapX][mapY] > 0)
+            {
+                res = 1;
+                break;
+            }
+
+            float perpWallDist;
+            if (side == 0)
+                perpWallDist = (sideDistX - deltaDistX);
+            else
+                perpWallDist = (sideDistY - deltaDistY);
+
+            int lineHeight = (int)(SCREEN_HEIGHT / perpWallDist);
+            int drawStart = -lineHeight / 2 + SCREEN_HEIGHT / 2;
+            if (drawStart < 0)
+                drawStart = 0;
+            int drawEnd = lineHeight / 2 + SCREEN_HEIGHT / 2;
+            if (drawEnd == SCREEN_HEIGHT)
+                drawEnd = SCREEN_HEIGHT - 1;
+
+            Color color = RED;
+            if(side == 1){
+                color = MAROON;
+            }
+
+            DrawLine(x, drawStart, x, drawEnd, color);
+
+
+        }
+*/
