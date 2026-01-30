@@ -2,7 +2,7 @@ CC      := gcc
 CFLAGS  := -std=c99 -Wall -Wextra -O2 -Idirectories/include
 LDFLAGS := -Ldirectories/lib -lraylib -lopengl32 -lgdi32 -lwinmm
 
-SRC     := main.c 
+SRC     := src/main.c 
 OUT     := game.exe
 
 all: $(OUT)
