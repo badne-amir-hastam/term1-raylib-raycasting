@@ -27,6 +27,9 @@ void drawMap();
 void playerMove(Player *p, float delta);
 void playerRot(Player *p, float delta);
 void RayCasting(Player *p);
+void loadMap(char *filename, Player *p);
+void saveMap(char *fileName, Player *p);
+
 int main()
 {
     // init map
@@ -99,7 +102,7 @@ int main()
             {
                 int mouseTileX = (int)(mouse.x / TILE_SIZE);
                 int mouseTileY = (int)(mouse.y / TILE_SIZE);
-                if (!((mouseTileX == (int)player.pos.x && mouseTileY == (int)player.pos.y )|| world_map[mouseTileY][mouseTileY] == -1))
+                if (!((mouseTileX == (int)player.pos.x && mouseTileY == (int)player.pos.y) || world_map[mouseTileY][mouseTileX] == -1))
                 {
                     if (status == 1)
                     {
@@ -114,6 +117,10 @@ int main()
         }
 
         EndDrawing();
+        if (IsKeyPressed(KEY_F5))
+            saveMap("MAP.txt",&player);
+        if (IsKeyPressed(KEY_F9))
+            loadMap("MAP.txt",&player);
     }
 }
 
@@ -280,4 +287,48 @@ void RayCasting(Player *p)
         DrawLine(x, drawStart, x, drawEnd, color); // wall
         DrawLine(x, drawEnd, x, SCREEN_HEIGHT, DARKGRAY);
     }
+}
+
+void saveMap(char *fileName, Player *p)
+{
+    FILE *file = fopen(fileName, "w");
+    if (!file)
+    {
+        printf("ERROR");
+        return;
+    }
+    for (int y = 0; y < MAP_HEIGHT; y++)
+    {
+        for (int x = 0; x < MAP_WIDTH; x++)
+        {
+            fprintf(file, "%d ", world_map[y][x]);
+        }
+        fprintf(file, "\n");
+    }
+    fprintf(file, "%f %f", p->pos.x, p->pos.y);
+    fclose(file);
+    printf("Map saved successfuly in: %s\n", fileName);
+}
+
+void loadMap(char *filename, Player *p)
+{
+    FILE *file = fopen(filename, "r");
+    if (!file)
+    {
+        printf("ERROR");
+        return;
+    }
+
+    for (int y = 0; y < MAP_HEIGHT; y++)
+    {
+        for (int x = 0; x < MAP_WIDTH; x++)
+        {
+            fscanf(file, "%d", &world_map[y][x]);
+        }
+    }
+    fscanf(file, " %f %f", &p->pos.x, &p->pos.y);
+    world_map[(int)p->pos.y][(int)p->pos.x] = 0;
+
+    fclose(file);
+    printf("Map loaded successfuly from: %s\n", filename);
 }
