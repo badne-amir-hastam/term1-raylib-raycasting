@@ -5,8 +5,8 @@
 #define MAP_WIDTH 20
 #define MAP_HEIGHT 20
 #define TILE_SIZE 64
-#define SCREEN_WIDTH MAP_WIDTH * TILE_SIZE 
-#define SCREEN_HEIGHT MAP_HEIGHT * TILE_SIZE
+#define SCREEN_WIDTH 1920
+#define SCREEN_HEIGHT 1080
 
 typedef struct
 {
@@ -24,7 +24,7 @@ void RayCasting(Player *p);
 int main()
 {
 
-    for (int i = 0; i <MAP_HEIGHT; i++)
+    for (int i = 0; i < MAP_HEIGHT; i++)
         for (int j = 0; j < MAP_WIDTH; j++)
         {
             if (!i || !j || i + 1 == MAP_WIDTH || j + 1 == MAP_HEIGHT)
@@ -34,7 +34,7 @@ int main()
         }
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "game");
     SetTargetFPS(60);
-    Player player = {{MAP_WIDTH / 2.0, MAP_HEIGHT/ 2.0}, {1, 0}, {0, 0.66}};
+    Player player = {{MAP_WIDTH / 2.0, MAP_HEIGHT / 2.0}, {1, 0}, {0, 0.66}};
 
     while (!WindowShouldClose())
     {
@@ -45,32 +45,14 @@ int main()
         BeginDrawing();
 
         ClearBackground(LIGHTGRAY);
-
-        drawMap();
-        DrawCircle(player.pos.x * TILE_SIZE, player.pos.y * TILE_SIZE, TILE_SIZE / 4, RED);                                                                  // player circle
-        DrawLine(player.pos.x * TILE_SIZE, player.pos.y * TILE_SIZE, player.pos.x * TILE_SIZE + player.dir.x * TILE_SIZE, player.pos.y * TILE_SIZE + player.dir.y * TILE_SIZE, RED); // draw direction
-        EndDrawing();
-    }
-}
-
-void drawMap()
-{
-    for (int y = 0; y < MAP_HEIGHT; y++)
-    {
-        for (int x = 0; x < MAP_WIDTH; x++)
-        {
-            if (world_map[y][x] == 0)
-                DrawRectangle(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE, LIGHTGRAY);
-            else
-                DrawRectangle(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE, DARKGRAY);
-            DrawRectangleLines(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE, BLACK); // outline
-        }
+        RayCasting(&player);
+         EndDrawing();
     }
 }
 
 void playerMove(Player *p, float delta)
 {
-    float MoveSpeed = delta * 2;
+    float MoveSpeed = delta * 5;
     Vector2 targetPos = p->pos;
     if (IsKeyDown(KEY_W))
     {
@@ -100,9 +82,9 @@ void playerMove(Player *p, float delta)
     if (targetPos.y < p->pos.y)
         fRt = -1;
 
-    if(world_map[(int)(targetPos.y)][(int)p->pos.x] == 0)
+    if (world_map[(int)(targetPos.y)][(int)p->pos.x] == 0)
         p->pos.y = targetPos.y;
-    if(world_map[(int)p->pos.y][(int)(targetPos.x)] == 0)
+    if (world_map[(int)p->pos.y][(int)(targetPos.x)] == 0)
         p->pos.x = targetPos.x;
 }
 
@@ -132,8 +114,9 @@ void playerRot(Player *p, float delta)
     }
 }
 
-void RayCasting(Player *p){
-    Vector2 ray; 
+void RayCasting(Player *p)
+{
+
     for (int x = 0; x < SCREEN_WIDTH; x++)
     {
         double cameraX = 2.0 * x / SCREEN_WIDTH - 1;
@@ -141,7 +124,74 @@ void RayCasting(Player *p){
         double rayDirY = p->dir.y + p->plane.y * cameraX;
         int mapX = (int)p->pos.x;
         int mapY = (int)p->pos.y;
-        
+
+        double deltaDistX = (rayDirX != 0 ? fabs(1.0 / rayDirX) : 1e10);
+        double deltaDistY = (rayDirY != 0 ? fabs(1.0 / rayDirY) : 1e10);
+        double sideDistX, sideDistY;
+        int stepX, stepY;
+
+        if (rayDirX < 0)
+        {
+            stepX = -1;
+            sideDistX = (p->pos.x - mapX) * deltaDistX;
+        }
+        else
+        {
+            stepX = 1;
+            sideDistX = (mapX + 1.0 - p->pos.x) * deltaDistX;
+        }
+        if (rayDirY < 0)
+        {
+            stepY = -1;
+            sideDistY = (p->pos.y - mapY) * deltaDistY;
+        }
+        else
+        {
+            stepY = 1;
+            sideDistY = (mapY + 1.0 - p->pos.y) * deltaDistY;
+        }
+
+        // dda
+        int side;
+        while (1)
+        {
+            if (sideDistX < sideDistY)
+            {
+                mapX += stepX;
+                sideDistX += deltaDistX;
+                side = 0;
+            }
+            else
+            {
+                mapY += stepY;
+                sideDistY += deltaDistY;
+                side = 1;
+            }
+            if (world_map[mapY][mapX] == 1)
+                break;
+        }
+        double perpWallDist;
+        if (side)
+            perpWallDist = sideDistY - deltaDistY;
+        else
+            perpWallDist = sideDistX - deltaDistX;
+        // draw
+
+        int lineHeight = (int)(SCREEN_HEIGHT / perpWallDist);
+        int drawStart = -lineHeight / 2 + SCREEN_HEIGHT / 2;
+        if (drawStart < 0)
+            drawStart = 0;
+        int drawEnd = lineHeight / 2 + SCREEN_HEIGHT / 2;
+        if (drawEnd >= SCREEN_HEIGHT)
+            drawEnd = SCREEN_HEIGHT - 1;
+
+            Color color = GRAY;
+        if (side == 1)
+        {
+            color = LIGHTGRAY;
+        }
+        DrawLine(x, 0, x, drawStart, VIOLET); // ceiling
+        DrawLine(x, drawStart, x, drawEnd, color);   // wall
+        DrawLine(x, drawEnd, x, SCREEN_HEIGHT, DARKGRAY);
     }
-    
 }
