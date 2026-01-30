@@ -34,7 +34,7 @@ int main()
         }
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "game");
     SetTargetFPS(60);
-    Player player = {{SCREEN_WIDTH / 2.0, SCREEN_HEIGHT / 2.0}, {1, 0}, {0, 0.66}};
+    Player player = {{MAP_WIDTH / 2.0, MAP_HEIGHT/ 2.0}, {1, 0}, {0, 0.66}};
 
     while (!WindowShouldClose())
     {
@@ -47,8 +47,8 @@ int main()
         ClearBackground(LIGHTGRAY);
 
         drawMap();
-        DrawCircle(player.pos.x, player.pos.y, TILE_SIZE / 4, RED);                                                                  // player circle
-        DrawLine(player.pos.x, player.pos.y, player.pos.x + player.dir.x * TILE_SIZE, player.pos.y + player.dir.y * TILE_SIZE, RED); // draw direction
+        DrawCircle(player.pos.x * TILE_SIZE, player.pos.y * TILE_SIZE, TILE_SIZE / 4, RED);                                                                  // player circle
+        DrawLine(player.pos.x * TILE_SIZE, player.pos.y * TILE_SIZE, player.pos.x * TILE_SIZE + player.dir.x * TILE_SIZE, player.pos.y * TILE_SIZE + player.dir.y * TILE_SIZE, RED); // draw direction
         EndDrawing();
     }
 }
@@ -70,7 +70,7 @@ void drawMap()
 
 void playerMove(Player *p, float delta)
 {
-    float MoveSpeed = TILE_SIZE * delta * 2;
+    float MoveSpeed = delta * 2;
     Vector2 targetPos = p->pos;
     if (IsKeyDown(KEY_W))
     {
@@ -92,15 +92,6 @@ void playerMove(Player *p, float delta)
         targetPos.x += MoveSpeed * p->dir.y;
         targetPos.y -= MoveSpeed * p->dir.x;
     }
-    int x = (int)(targetPos.x + TILE_SIZE) / 64, y = (int)(targetPos.y + TILE_SIZE) / 64;
-    if (fabs(x - (targetPos.x + TILE_SIZE) / 64) > 0.5)
-    {
-        x++;
-    }
-    if (fabs(y - (targetPos.y + TILE_SIZE) / 64) > 0.5)
-    {
-        y++;
-    }
 
     int fUp = 1, fRt = 1;
     if (targetPos.x < p->pos.x)
@@ -109,14 +100,10 @@ void playerMove(Player *p, float delta)
     if (targetPos.y < p->pos.y)
         fRt = -1;
 
-    if (targetPos.x * targetPos.y > 0) // checks if our character is in the map
-    {
-        if (world_map[(int)(p->pos.y / TILE_SIZE)][(int)((targetPos.x + (TILE_SIZE / 4) * fUp) / TILE_SIZE)]  == 0)
-            p->pos.x = targetPos.x;
-
-        if (world_map[(int)((targetPos.y + (TILE_SIZE / 4) * fRt) / TILE_SIZE)][(int)(p->pos.x / TILE_SIZE)] == 0)
-            p->pos.y = targetPos.y;
-    }
+    if(world_map[(int)(targetPos.y)][(int)p->pos.x] == 0)
+        p->pos.y = targetPos.y;
+    if(world_map[(int)p->pos.y][(int)(targetPos.x)] == 0)
+        p->pos.x = targetPos.x;
 }
 
 void playerRot(Player *p, float delta)
@@ -143,4 +130,18 @@ void playerRot(Player *p, float delta)
         p->plane.x = p->plane.x * cos(rotSpeed) - p->plane.y * sin(rotSpeed);
         p->plane.y = oldPlaneX * sin(rotSpeed) + p->plane.y * cos(rotSpeed);
     }
+}
+
+void RayCasting(Player *p){
+    Vector2 ray; 
+    for (int x = 0; x < SCREEN_WIDTH; x++)
+    {
+        double cameraX = 2.0 * x / SCREEN_WIDTH - 1;
+        double rayDirX = p->dir.x + p->plane.x * cameraX;
+        double rayDirY = p->dir.y + p->plane.y * cameraX;
+        int mapX = (int)p->pos.x;
+        int mapY = (int)p->pos.y;
+        
+    }
+    
 }
