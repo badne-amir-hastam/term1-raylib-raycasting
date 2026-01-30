@@ -4,7 +4,7 @@
 
 #define MAP_WIDTH 20
 #define MAP_HEIGHT 20
-#define TILE_SIZE 64
+#define TILE_SIZE 20
 #define SCREEN_WIDTH 1920
 #define SCREEN_HEIGHT 1080
 
@@ -15,6 +15,12 @@ typedef struct
     Vector2 plane;
 } Player;
 
+typedef enum
+{
+    STATE_PLAY_MODE,
+    STATE_EDIT_MODE
+} GameState;
+
 int world_map[MAP_HEIGHT][MAP_WIDTH];
 
 void drawMap();
@@ -23,30 +29,109 @@ void playerRot(Player *p, float delta);
 void RayCasting(Player *p);
 int main()
 {
-
+    // init map
     for (int i = 0; i < MAP_HEIGHT; i++)
         for (int j = 0; j < MAP_WIDTH; j++)
         {
             if (!i || !j || i + 1 == MAP_WIDTH || j + 1 == MAP_HEIGHT)
-                world_map[i][j] = 1;
+                world_map[i][j] = -1;
             else
                 world_map[i][j] = 0;
         }
+
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "game");
     SetTargetFPS(60);
     Player player = {{MAP_WIDTH / 2.0, MAP_HEIGHT / 2.0}, {1, 0}, {0, 0.66}};
-
+    GameState state = STATE_PLAY_MODE;
+    int w = GetMonitorWidth(0);
+    int h = GetMonitorHeight(0);
+    int posX, posY;
     while (!WindowShouldClose())
     {
 
         float delta = GetFrameTime();
         playerMove(&player, delta);
         playerRot(&player, delta);
+        if (IsKeyPressed(KEY_M))
+        {
+            if (state == STATE_PLAY_MODE)
+            {
+                state = STATE_EDIT_MODE;
+                SetWindowSize(TILE_SIZE * MAP_WIDTH, TILE_SIZE * MAP_HEIGHT);
+                posX = (w - MAP_WIDTH * TILE_SIZE) / 2;
+                posY = (h - MAP_HEIGHT * TILE_SIZE) / 2;
+                SetWindowPosition(posX, posY);
+            }
+            else
+            {
+                state = STATE_PLAY_MODE;
+                SetWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+                posX = (w - SCREEN_WIDTH) / 2;
+                posY = (h - SCREEN_HEIGHT) / 2;
+                SetWindowPosition(posX, posY);
+            }
+        }
         BeginDrawing();
+        if (state == STATE_PLAY_MODE)
+            RayCasting(&player);
+        else
+        {
+            drawMap();
+            DrawCircle(player.pos.x * TILE_SIZE, player.pos.y * TILE_SIZE, TILE_SIZE / 4, RED);
+            DrawLine(player.pos.x * TILE_SIZE, player.pos.y * TILE_SIZE, (player.pos.x + player.dir.x * 0.8) * TILE_SIZE, (player.pos.y + player.dir.y * 0.8) * TILE_SIZE, RED); // draw direction
+            int f = 0, status;
+            Vector2 mouse;
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+            {
+                mouse = GetMousePosition();
+                status = 1;
+                if (mouse.x < TILE_SIZE * MAP_WIDTH && mouse.x > 0 && mouse.y < TILE_SIZE * MAP_HEIGHT && mouse.y > 0)
+                    f = 1;
+            }
+            if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
+            {
+                mouse = GetMousePosition();
+                status = 2;
+                if (mouse.x < TILE_SIZE * MAP_WIDTH && mouse.x > 0 && mouse.y < TILE_SIZE * MAP_HEIGHT && mouse.y > 0)
+                    f = 1;
+            }
+            if (f)
+            {
+                int mouseTileX = (int)(mouse.x / TILE_SIZE);
+                int mouseTileY = (int)(mouse.y / TILE_SIZE);
+                if (!((mouseTileX == (int)player.pos.x && mouseTileY == (int)player.pos.y )|| world_map[mouseTileY][mouseTileY] == -1))
+                {
+                    if (status == 1)
+                    {
+                        world_map[mouseTileY][mouseTileX] = 1;
+                    }
+                    else
+                    {
+                        world_map[mouseTileY][mouseTileX] = 0;
+                    }
+                }
+            }
+        }
 
-        ClearBackground(LIGHTGRAY);
-        RayCasting(&player);
-         EndDrawing();
+        EndDrawing();
+    }
+}
+
+void drawMap()
+{
+    ClearBackground(LIGHTGRAY);
+    for (int y = 0; y < MAP_HEIGHT; y++)
+    {
+        for (int x = 0; x < MAP_WIDTH; x++)
+        {
+            if (world_map[y][x] == 0)
+                DrawRectangle(+x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE, LIGHTGRAY);
+            else if (world_map[y][x] == 1)
+                DrawRectangle(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE, DARKGRAY);
+            else
+                DrawRectangle(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE, RED);
+            DrawRectangleLines(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE, BLACK); // outline
+        }
     }
 }
 
@@ -74,13 +159,6 @@ void playerMove(Player *p, float delta)
         targetPos.x += MoveSpeed * p->dir.y;
         targetPos.y -= MoveSpeed * p->dir.x;
     }
-
-    int fUp = 1, fRt = 1;
-    if (targetPos.x < p->pos.x)
-        fUp = -1;
-
-    if (targetPos.y < p->pos.y)
-        fRt = -1;
 
     if (world_map[(int)(targetPos.y)][(int)p->pos.x] == 0)
         p->pos.y = targetPos.y;
@@ -152,7 +230,7 @@ void RayCasting(Player *p)
         }
 
         // dda
-        int side;
+        int side, wallType;
         while (1)
         {
             if (sideDistX < sideDistY)
@@ -168,7 +246,15 @@ void RayCasting(Player *p)
                 side = 1;
             }
             if (world_map[mapY][mapX] == 1)
+            {
+                wallType = 1;
                 break;
+            }
+            if (world_map[mapY][mapX] == -1)
+            {
+                wallType = -1;
+                break;
+            }
         }
         double perpWallDist;
         if (side)
@@ -185,13 +271,13 @@ void RayCasting(Player *p)
         if (drawEnd >= SCREEN_HEIGHT)
             drawEnd = SCREEN_HEIGHT - 1;
 
-            Color color = GRAY;
+        Color color = (wallType == 1) ? GRAY : RED;
         if (side == 1)
         {
-            color = LIGHTGRAY;
+            color = (wallType == 1) ? LIGHTGRAY : MAROON;
         }
-        DrawLine(x, 0, x, drawStart, VIOLET); // ceiling
-        DrawLine(x, drawStart, x, drawEnd, color);   // wall
+        DrawLine(x, 0, x, drawStart, VIOLET);      // ceiling
+        DrawLine(x, drawStart, x, drawEnd, color); // wall
         DrawLine(x, drawEnd, x, SCREEN_HEIGHT, DARKGRAY);
     }
 }
