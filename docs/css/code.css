@@ -65,14 +65,17 @@ header nav a:active {
     align-items: stretch;
 
 }
-.firstText{
+
+.firstText {
     justify-self: start;
     padding: 10px;
 }
-.secondText{
+
+.secondText {
     justify-self: center;
     padding: 10px;
 }
+
 .hero a {
     border-radius: 10px;
     text-decoration-line: none;
@@ -101,7 +104,8 @@ header nav a:active {
     height: 300px;
 }
 
-.prp div p, h3 {
+.prp div p,
+h3 {
     margin: 10px;
     text-align: center;
 }
@@ -206,24 +210,38 @@ footer {
     justify-content: space-around;
     text-align: center;
 }
-footer p{
+
+footer p {
     margin: 10px;
     display: inline;
 }
+
 /* -----------------Phone-------------- */
 
 @media screen and (max-width: 768px) {
-    
-    .prp{
+
+    .prp {
         grid-template-columns: 1fr;
     }
-    .devLog{
+
+    .devLog {
         grid-template-columns: 1fr;
     }
-    .gallerImg{
+
+    footer p {
+        font-size: 5px;
+    }
+
+    footer {
+        padding: 5px;
+    }
+
+    .gallerImg {
         grid-template-columns: 1fr;
     }
-    .gallerImg img{
-        height: 100%;
+
+    .gallerImg img {
+        width: 100%;
+        height: auto;
     }
 }
