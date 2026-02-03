@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RayCasting</title>
+    <link rel="stylesheet" href="css/code.css">
+</head>
+
+<body>
+    <header>
+
+        <nav>
+            <a href="index.html" >Main Page</a>
+            <a href="devlog.html" class="activeH">Dev Log</a>
+            <a href="gallery.html">Gallery</a>
+        </nav>
+    </header>
+    <div class="devLog">
+        <section class="DLsec1">
+            <h3>How does our engine work?</h3>
+            <p>RayCasting, is a technique that creates a "3D-like view" from a "2D map". Rays are cast from the player`s position in the viewing direction, and each ray stops when it hits a wall in the 2D grid. The distance to the wall is then used to calculate the height of a vertical slice on the screen. By drawing these slices side by side, a scene appears three-dimensional without using a true 3D world.</p>
+        </section>
+        <section class="DLsec2">
+            <h3>Hardest Part</h3>
+            <p>One of the hardest part of writing DDA Algorithm, was when I wanted to run it with pixel cordination, but it should be written with map cordination. But first I didnt know it so I wrote it with pixel cordination and it wasted so much of my time before I found out it was wrong. </p>
+        </section>
+    </div>
+    <footer>
+        <p>amir mohammad kaheh</p>
+        <p>404522016 </p>
+        <p>
+            Open Source License 2026 ©
+        </p>
+    </footer>
+</body>
+
+</html>
